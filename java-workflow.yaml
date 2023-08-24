@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: add-example
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      steps:
+        - - name: initialAdd
+            template: add
+            arguments:
+              parameters:
+                - name: "a"
+                  value: "2"
+                - name: "b"
+                  value: "5"
+        - - name: addTen
+            template: add
+            arguments:
+              parameters:
+                - name: "a"
+                  value: "{{steps.initialAdd.outputs.result}}"
+                - name: "b"
+                  value: "10"
+        - - name: sayResult
+            template: sayHello
+            when: "{{steps.addTen.outputs.result}} > 5"
+            arguments:
+              parameters:
+                - name: "result"
+                  value: "{{steps.addTen.outputs.result}}"
+    - name: add
+      inputs:
+        parameters:
+          - name: "a"
+          - name: "b"
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo $(( {{inputs.parameters.a}} + {{inputs.parameters.b}} ))"]
+    - name: sayHello
+      inputs: 
+        parameters:
+          - name: "result"
+      container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo 'Result is: {{inputs.parameters.results}}'"]
